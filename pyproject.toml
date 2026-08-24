@@ -1,0 +1,8 @@
+[project]
+name = "voice-agent"
+version = "0.1.0"
+description = "Voice-to-text desktop agent for Windows"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
