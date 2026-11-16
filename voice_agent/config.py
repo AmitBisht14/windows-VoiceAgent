@@ -31,11 +31,15 @@ class Config:
     # Ollama / speech-to-text
     ollama_url: str = "http://localhost:11434"
     model: str = "gemma4:e2b"
+    # "native" = POST /api/chat with the WAV in "images" (works with gemma4 today);
+    # "openai" = POST /v1/chat/completions with an "input_audio" content part.
+    ollama_api: str = "native"
     prompt: str = DEFAULT_PROMPT
     chunk_seconds: float = 20.0
     num_ctx: int = 8192
     request_timeout: float = 120.0
     keep_alive: str = "10m"
+    silence_threshold: float = 0.004  # chunks quieter than this RMS are skipped
 
     # Audio
     sample_rate: int = 16000
@@ -75,6 +79,9 @@ class Config:
         if cfg.hotkey_mode not in ("hold", "toggle"):
             log.warning("Invalid hotkey_mode %r, using 'hold'", cfg.hotkey_mode)
             cfg.hotkey_mode = "hold"
+        if cfg.ollama_api not in ("native", "openai"):
+            log.warning("Invalid ollama_api %r, using 'native'", cfg.ollama_api)
+            cfg.ollama_api = "native"
         return cfg
 
     def to_dict(self) -> dict:
