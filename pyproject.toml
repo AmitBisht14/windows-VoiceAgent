@@ -1,8 +1,23 @@
 [project]
 name = "voice-agent"
 version = "0.1.0"
-description = "Voice-to-text desktop agent for Windows"
+description = "Local voice-to-text dictation for Windows using Ollama (gemma4:e2b)"
 requires-python = ">=3.11"
+dependencies = [
+    "PySide6>=6.7",
+    "pynput>=1.7",
+    "sounddevice>=0.4",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pyinstaller>=6.6"]
+
+[project.gui-scripts]
+voice-agent = "voice_agent.main:main"
+
+[tool.setuptools.packages.find]
+include = ["voice_agent*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
