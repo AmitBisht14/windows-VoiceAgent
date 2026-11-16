@@ -1,4 +1,4 @@
-"""System tray icon with status, Ollama health check and quit."""
+"""System tray icon with status, speech engine health check and quit."""
 
 from __future__ import annotations
 
@@ -41,9 +41,9 @@ class TrayIcon(QSystemTrayIcon):
         menu = QMenu()
         self._status_action = QAction(menu)
         self._status_action.setEnabled(False)
-        self._health_action = QAction("Ollama: checking…", menu)
+        self._health_action = QAction("Loading speech model…", menu)
         self._health_action.setEnabled(False)
-        check = QAction("Check Ollama", menu)
+        check = QAction("Check speech engine", menu)
         check.triggered.connect(self.check_requested.emit)
         open_cfg = QAction("Open config folder", menu)
         open_cfg.triggered.connect(self._open_config)

@@ -16,6 +16,10 @@ class FakeKeyboard:
     def __init__(self, clipboard):
         self.clipboard = clipboard
         self.pasted = []
+        self.released = []
+
+    def release_keys(self, tokens):
+        self.released.append(set(tokens))
 
     def paste(self):
         self.pasted.append(self.clipboard.text)
@@ -60,7 +64,14 @@ def test_options():
 
 
 def test_waits_for_keys_released():
-    held = iter([True, True, False])
-    inj, cb, kb, _ = make(keys_held=lambda: next(held, False))
+    held = iter([{"win"}, {"win"}, set()])
+    inj, cb, kb, _ = make(held_keys=lambda: next(held, set()))
     inj.inject("x")
-    assert next(held, "done") == "done"
+    assert kb.released == [] and kb.pasted == ["x "]
+
+
+def test_releases_still_held_modifiers_after_timeout():
+    inj, cb, kb, _ = make(held_keys=lambda: {"win", "ctrl"}, release_wait=0.0)
+    inj.inject("x")
+    assert kb.released == [{"win", "ctrl"}]
+    assert kb.pasted == ["x "]
