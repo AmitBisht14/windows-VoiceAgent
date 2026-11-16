@@ -65,7 +65,7 @@ def main() -> int:
     injector = TextInjector(
         QtClipboard(), PynputKeyboard(),
         schedule=QTimer.singleShot,
-        keys_held=lambda: bool(listener and listener.state.pressed & listener.state.combo),
+        held_keys=lambda: set(listener.state.pressed & listener.state.combo) if listener else set(),
         restore_clipboard=cfg.restore_clipboard, append_space=cfg.append_space)
     controller = Controller(recorder, stt, injector, tail_ms=cfg.tail_ms)
 

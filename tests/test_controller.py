@@ -176,3 +176,13 @@ def test_press_again_during_tail_continues(app):
     assert rec.is_recording and ex.jobs == []
     c.cancel_recording()
     assert not rec.is_recording
+
+
+def test_timings_logged_without_text(app, caplog):
+    import logging
+    c, ex, inj, states, _ = make(stt=FakeSTT(text="secret words"))
+    with caplog.at_level(logging.INFO, logger="voice_agent.controller"):
+        c.start_recording(); c.stop_recording(); ex.run_all()
+    msgs = " ".join(r.getMessage() for r in caplog.records)
+    assert "speech-to-text" in msgs and "secret" not in msgs
+    assert inj.texts == ["secret words"]

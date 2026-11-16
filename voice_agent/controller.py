@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from concurrent.futures import Executor, ThreadPoolExecutor
 
 from PySide6.QtCore import QObject, QTimer, Signal, Slot
@@ -23,7 +24,7 @@ class Controller(QObject):
     stop_requested = Signal()
     cancel_requested = Signal()
 
-    _transcribed = Signal(str)
+    _transcribed = Signal(str, float, float)  # text, audio seconds, stt seconds
     _failed = Signal(str)
 
     def __init__(self, recorder, stt, injector, executor: Executor | None = None,
@@ -126,20 +127,27 @@ class Controller(QObject):
 
     def _work(self, wav: bytes) -> None:  # worker thread
         try:
-            self._transcribed.emit(self.stt.transcribe(wav))
+            audio_seconds = max(0, len(wav) - 44) / (2 * 16000)
+            started = time.perf_counter()
+            text = self.stt.transcribe(wav)
+            self._transcribed.emit(text, audio_seconds, time.perf_counter() - started)
         except Exception as exc:
             log.exception("Transcription failed")
             self._failed.emit(str(exc) or exc.__class__.__name__)
 
-    @Slot(str)
-    def _on_transcribed(self, text: str) -> None:
+    @Slot(str, float, float)
+    def _on_transcribed(self, text: str, audio_seconds: float = 0.0,
+                        stt_seconds: float = 0.0) -> None:
         self._pending -= 1
-        log.info("Transcribed %d characters", len(text))
+        started = time.perf_counter()
         try:
             self.injector.inject(text)
         except Exception as exc:
             log.exception("Text injection failed")
             self.error.emit(f"Could not insert text: {exc}")
+        # Timings only; transcript text is never logged.
+        log.info("Dictation: audio %.1fs, speech-to-text %.2fs, paste %.2fs, %d chars",
+                 audio_seconds, stt_seconds, time.perf_counter() - started, len(text))
         self._settle_state()
 
     @Slot(str)
