@@ -26,7 +26,8 @@ class Controller(QObject):
     _transcribed = Signal(str)
     _failed = Signal(str)
 
-    def __init__(self, recorder, stt, injector, executor: Executor | None = None, parent=None):
+    def __init__(self, recorder, stt, injector, executor: Executor | None = None,
+                 tail_ms: int = 0, parent=None):
         super().__init__(parent)
         self.recorder = recorder
         self.stt = stt
@@ -41,6 +42,12 @@ class Controller(QObject):
         self.cancel_requested.connect(self.cancel_recording)
         self._transcribed.connect(self._on_transcribed)
         self._failed.connect(self._on_failed)
+
+        # Keep capturing briefly after release so the last word is not clipped.
+        self._tail_timer = QTimer(self)
+        self._tail_timer.setSingleShot(True)
+        self._tail_timer.setInterval(max(0, int(tail_ms)))
+        self._tail_timer.timeout.connect(self._finish_recording)
 
         self._level_timer = QTimer(self)
         self._level_timer.setInterval(50)
@@ -65,6 +72,9 @@ class Controller(QObject):
 
     @Slot()
     def start_recording(self) -> None:
+        if self._tail_timer.isActive():  # pressed again during the tail: keep going
+            self._tail_timer.stop()
+            return
         if self.recorder.is_recording:
             return
         try:
@@ -79,6 +89,15 @@ class Controller(QObject):
 
     @Slot()
     def stop_recording(self) -> None:
+        if not self.recorder.is_recording or self._tail_timer.isActive():
+            return
+        if self._tail_timer.interval() > 0:
+            self._tail_timer.start()
+        else:
+            self._finish_recording()
+
+    @Slot()
+    def _finish_recording(self) -> None:
         if not self.recorder.is_recording:
             return
         self._level_timer.stop()
@@ -92,6 +111,7 @@ class Controller(QObject):
     def cancel_recording(self) -> None:
         if not self.recorder.is_recording:
             return
+        self._tail_timer.stop()
         self._level_timer.stop()
         self.recorder.stop()
         log.info("Dictation cancelled")
@@ -99,7 +119,7 @@ class Controller(QObject):
 
     @Slot()
     def toggle_recording(self) -> None:
-        if self.recorder.is_recording:
+        if self.recorder.is_recording and not self._tail_timer.isActive():
             self.stop_recording()
         else:
             self.start_recording()
@@ -129,6 +149,7 @@ class Controller(QObject):
         self._settle_state()
 
     def shutdown(self) -> None:
+        self._tail_timer.stop()
         self._level_timer.stop()
         if self.recorder.is_recording:
             self.recorder.stop()

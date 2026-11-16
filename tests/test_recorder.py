@@ -89,3 +89,56 @@ def test_recorder_discards_short_clip():
     rec = AudioRecorder(sd_module=FakeSD, min_duration=2.0)
     rec.start()
     assert rec.stop() is None
+
+
+def _tone(freq, seconds, sr, amp=0.5):
+    t = np.arange(int(seconds * sr)) / sr
+    return (amp * np.sin(2 * np.pi * freq * t)).astype(np.float32)
+
+
+def test_resample_removes_out_of_band_tone():
+    # A 12 kHz tone cannot exist at 16 kHz; linear interpolation would alias it to 4 kHz.
+    out = resample(_tone(12000, 1.0, 48000), 48000, 16000)
+    assert rms_level(out) < 0.01
+
+
+def test_resample_preserves_in_band_tone():
+    src = _tone(1000, 1.0, 48000)
+    out = resample(src, 48000, 16000)
+    expected = _tone(1000, 1.0, 16000)
+    assert np.max(np.abs(out[100:-100] - expected[100:-100])) < 0.01
+
+
+def test_trim_silence_keeps_padding():
+    from voice_agent.audio.wav import trim_silence
+    sr = 16000
+    x = np.concatenate([np.zeros(sr), _tone(300, 1.0, sr), np.zeros(2 * sr)])
+    out = trim_silence(x, sr, pad_seconds=0.2)
+    assert abs(out.size / sr - 1.4) < 0.05
+
+
+def test_trim_silence_all_silent():
+    from voice_agent.audio.wav import trim_silence
+    assert trim_silence(np.zeros(16000, dtype=np.float32), 16000).size == 0
+
+
+def test_normalize_boosts_quiet_without_clipping():
+    from voice_agent.audio.wav import normalize
+    quiet = _tone(300, 0.5, 16000, amp=0.05)
+    out = normalize(quiet)
+    assert abs(np.max(np.abs(out)) - 0.4) < 0.01  # capped by max_gain=8
+    loud = _tone(300, 0.5, 16000, amp=0.95)
+    assert np.array_equal(normalize(loud), loud)
+
+
+def test_recorder_discards_silence():
+    class SilentStream(FakeStream):
+        def start(self):
+            self.callback(np.zeros((self.rate, 1), dtype=np.float32), self.rate, None, None)
+
+    class SilentSD(FakeSD):
+        InputStream = SilentStream
+
+    rec = AudioRecorder(sd_module=SilentSD)
+    rec.start()
+    assert rec.stop() is None

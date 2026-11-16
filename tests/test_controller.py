@@ -152,3 +152,27 @@ def test_tray(app):
 def test_main_module_imports(app):
     import voice_agent.main as m
     assert callable(m.main)
+
+
+def test_tail_keeps_recording_after_release(app):
+    from PySide6.QtTest import QTest
+    ex = DeferredExecutor()
+    rec = FakeRecorder()
+    c = Controller(rec, FakeSTT(), FakeInjector(), executor=ex, tail_ms=100)
+    c.start_recording()
+    c.stop_recording()
+    assert rec.is_recording and ex.jobs == []  # still capturing the tail
+    QTest.qWait(250)
+    assert not rec.is_recording and len(ex.jobs) == 1
+
+
+def test_press_again_during_tail_continues(app):
+    from PySide6.QtTest import QTest
+    ex = DeferredExecutor()
+    rec = FakeRecorder()
+    c = Controller(rec, FakeSTT(), FakeInjector(), executor=ex, tail_ms=100)
+    c.start_recording(); c.stop_recording(); c.start_recording()
+    QTest.qWait(250)
+    assert rec.is_recording and ex.jobs == []
+    c.cancel_recording()
+    assert not rec.is_recording

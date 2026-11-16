@@ -44,6 +44,7 @@ class Config:
     # Audio
     sample_rate: int = 16000
     min_duration: float = 0.3
+    tail_ms: int = 250  # keep recording briefly after the hotkey is released
     max_duration: float = 300.0
 
     # Text injection
