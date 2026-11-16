@@ -19,9 +19,8 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
-from dataclasses import dataclass
 
-from .base import TranscriptionClient
+from .base import HealthStatus, TranscriptionClient
 from ..audio.wav import decode_wav, encode_wav, resample, rms_level, split_chunks
 
 log = logging.getLogger(__name__)
@@ -37,13 +36,6 @@ _NO_SPEECH = {"", "[no speech]", "(no speech)", "[silence]", "(silence)", "no sp
 
 class OllamaError(RuntimeError):
     """A user-facing problem talking to Ollama."""
-
-
-@dataclass
-class HealthStatus:
-    ok: bool
-    message: str
-    version: str | None = None
 
 
 def clean_transcript(text: str) -> str:
@@ -85,7 +77,7 @@ class OllamaTranscriptionClient(TranscriptionClient):
 
     @classmethod
     def from_config(cls, cfg) -> "OllamaTranscriptionClient":
-        return cls(base_url=cfg.ollama_url, model=cfg.model, prompt=cfg.prompt,
+        return cls(base_url=cfg.ollama_url, model=cfg.ollama_model, prompt=cfg.prompt,
                    chunk_seconds=cfg.chunk_seconds, num_ctx=cfg.num_ctx,
                    timeout=cfg.request_timeout, keep_alive=cfg.keep_alive,
                    api=cfg.ollama_api, silence_threshold=cfg.silence_threshold)

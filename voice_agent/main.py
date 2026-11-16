@@ -15,7 +15,7 @@ from voice_agent.config import config_dir, load_config
 from voice_agent.controller import Controller
 from voice_agent.hotkey.listener import HotkeyListener
 from voice_agent.inject.text_injector import PynputKeyboard, QtClipboard, TextInjector
-from voice_agent.stt.ollama import OllamaTranscriptionClient
+from voice_agent.stt import create_client
 from voice_agent.ui.overlay import OverlayPill
 from voice_agent.ui.tray import TrayIcon
 
@@ -59,7 +59,7 @@ def main() -> int:
     app.setQuitOnLastWindowClosed(False)
 
     recorder = AudioRecorder(cfg.sample_rate, cfg.min_duration, cfg.max_duration)
-    stt = OllamaTranscriptionClient.from_config(cfg)
+    stt = create_client(cfg)
 
     listener = None
     injector = TextInjector(
