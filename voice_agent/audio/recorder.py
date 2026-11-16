@@ -7,7 +7,7 @@ import threading
 
 import numpy as np
 
-from .wav import encode_wav, resample, rms_level
+from .wav import encode_wav, normalize, resample, rms_level, trim_silence
 
 log = logging.getLogger(__name__)
 
@@ -114,4 +114,12 @@ class AudioRecorder:
         if audio.size < self.min_duration * self.sample_rate:
             log.info("Recording too short (%.2fs), discarding", audio.size / self.sample_rate)
             return None
+        recorded = audio.size / self.sample_rate
+        audio = trim_silence(audio, self.sample_rate)
+        if audio.size < self.min_duration * self.sample_rate:
+            log.info("Recording (%.2fs) contained no speech, discarding", recorded)
+            return None
+        audio = normalize(audio)
+        log.info("Captured %.2fs of audio (%.2fs after trimming)", recorded,
+                 audio.size / self.sample_rate)
         return encode_wav(audio, self.sample_rate)

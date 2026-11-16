@@ -67,7 +67,7 @@ def main() -> int:
         schedule=QTimer.singleShot,
         keys_held=lambda: bool(listener and listener.state.pressed & listener.state.combo),
         restore_clipboard=cfg.restore_clipboard, append_space=cfg.append_space)
-    controller = Controller(recorder, stt, injector)
+    controller = Controller(recorder, stt, injector, tail_ms=cfg.tail_ms)
 
     overlay = OverlayPill()
     hotkey_label = "+".join(p.capitalize() for p in cfg.hotkey.split("+"))
