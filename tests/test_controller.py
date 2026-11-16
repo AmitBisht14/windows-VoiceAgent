@@ -137,3 +137,18 @@ def test_overlay_states(app):
         pill._on_tick()
         pill.repaint()
     assert pill.state == State.PROCESSING
+
+
+def test_tray(app):
+    from voice_agent.ui.tray import TrayIcon
+    tray = TrayIcon("Ctrl+Win", ".")
+    for s in State:
+        tray.set_state(s)
+    assert "Ctrl+Win" in tray.toolTip()
+    tray.set_health(True, "Ollama ready")
+    assert tray._health_action.text().endswith("Ollama ready")
+
+
+def test_main_module_imports(app):
+    import voice_agent.main as m
+    assert callable(m.main)

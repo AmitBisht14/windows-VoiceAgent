@@ -37,11 +37,13 @@ class QtClipboard:
 
 class PynputKeyboard:
     def __init__(self):
-        from pynput.keyboard import Controller, Key
-        self._kb = Controller()
-        self._key = Key
+        self._kb = None
+        self._key = None
 
     def paste(self) -> None:
+        if self._kb is None:  # lazy: pynput needs a desktop session
+            from pynput.keyboard import Controller, Key
+            self._kb, self._key = Controller(), Key
         with self._kb.pressed(self._key.ctrl):
             self._kb.press("v")
             self._kb.release("v")
