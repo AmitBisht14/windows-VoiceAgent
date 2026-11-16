@@ -116,7 +116,7 @@ def test_health_check():
 
 
 def test_from_config():
-    client = OllamaTranscriptionClient.from_config(Config(model="x:y", ollama_url="http://h:1/"))
+    client = OllamaTranscriptionClient.from_config(Config(ollama_model="x:y", ollama_url="http://h:1/"))
     assert client.model == "x:y" and client.base_url == "http://h:1"
 
 

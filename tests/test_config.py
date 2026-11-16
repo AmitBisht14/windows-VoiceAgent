@@ -7,7 +7,8 @@ def test_defaults():
     cfg = Config()
     assert cfg.hotkey == "ctrl+win"
     assert cfg.hotkey_mode == "hold"
-    assert cfg.model == "gemma4:e2b"
+    assert cfg.ollama_model == "gemma4:e2b"
+    assert cfg.stt_engine == "parakeet"
     assert cfg.ollama_url == "http://localhost:11434"
 
 
@@ -20,7 +21,7 @@ def test_missing_file_creates_defaults(tmp_path):
 
 def test_roundtrip(tmp_path):
     path = tmp_path / "config.json"
-    cfg = Config(model="gemma4:e4b", chunk_seconds=10)
+    cfg = Config(ollama_model="gemma4:e4b", chunk_seconds=10)
     save_config(cfg, path)
     assert load_config(path) == cfg
 
@@ -40,3 +41,17 @@ def test_corrupt_file_falls_back(tmp_path):
     path = tmp_path / "config.json"
     path.write_text("{not json")
     assert load_config(path) == Config()
+
+
+def test_legacy_model_key_maps_to_ollama_model(tmp_path):
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"model": "gemma4:e4b"}))
+    cfg = load_config(path)
+    assert cfg.ollama_model == "gemma4:e4b"
+    assert cfg.stt_engine == "parakeet"
+
+
+def test_invalid_engine_falls_back(tmp_path):
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"stt_engine": "whisperx"}))
+    assert load_config(path).stt_engine == "parakeet"
